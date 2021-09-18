@@ -4,9 +4,7 @@ localport=8443
 remoteport=443
 declare -i bandwidth
 declare -i speed
-bandwidth=30
-
-speed=bandwidth*128*1024
+bandwidth=30speed=bandwidth*128*1024
 starttime=`date +'%Y-%m-%d %H:%M:%S'`
 while true
 do
@@ -15,7 +13,7 @@ do
 		declare -i m
 		declare -i n
 		declare -i per
-		rm -rf icmp temp data.txt meta.txt log.txt anycast.txt temp.txt
+		rm -rf icmp temp data.txt meta.txt log.txt anycast.txt temp.txt speed.txt
 		mkdir icmp
 		while true
 		do
@@ -27,12 +25,12 @@ do
 				do
 					if [ ! -f "meta.txt" ]
 					then
-						curl --ipv4 --resolve speed.cloudflare.com:443:$resolveip --retry 3 -v https://speed.cloudflare.com/__down>meta.txt 2>&1
+						curl --ipv4 --resolve speed.cloudflare.com:443:$resolveip --retry 3 -s https://speed.cloudflare.com/meta | sed -e 's/{//g' -e 's/}//g' -e 's/"//g' -e 's/,/\n/g'>meta.txt
 					else
-						asn=$(cat meta.txt | grep cf-meta-asn: | tr '\r' '\n' | awk '{print $3}')
-						city=$(cat meta.txt | grep cf-meta-city: | tr '\r' '\n' | awk '{print $3}')
-						latitude=$(cat meta.txt | grep cf-meta-latitude: | tr '\r' '\n' | awk '{print $3}')
-						longitude=$(cat meta.txt | grep cf-meta-longitude: | tr '\r' '\n' | awk '{print $3}')
+						asn=$(cat meta.txt | grep asn: | awk -F: '{print $2}')
+						city=$(cat meta.txt | grep city: | awk -F: '{print $2}')
+						latitude=$(cat meta.txt | grep latitude: | awk -F: '{print $2}')
+						longitude=$(cat meta.txt | grep longitude: | awk -F: '{print $2}')
 						curl --ipv4 --resolve service.udpfile.com:443:$resolveip --retry 3 "https://service.udpfile.com?asn="$asn"&city="$city"" -o data.txt -#
 						break
 					fi
@@ -43,12 +41,12 @@ do
 				do
 					if [ ! -f "meta.txt" ]
 					then
-						curl --ipv4 --retry 3 -v https://speed.cloudflare.com/__down>meta.txt 2>&1
+						curl --ipv4 --retry 3 -s https://speed.cloudflare.com/meta | sed -e 's/{//g' -e 's/}//g' -e 's/"//g' -e 's/,/\n/g'>meta.txt
 					else
-						asn=$(cat meta.txt | grep cf-meta-asn: | tr '\r' '\n' | awk '{print $3}')
-						city=$(cat meta.txt | grep cf-meta-city: | tr '\r' '\n' | awk '{print $3}')
-						latitude=$(cat meta.txt | grep cf-meta-latitude: | tr '\r' '\n' | awk '{print $3}')
-						longitude=$(cat meta.txt | grep cf-meta-longitude: | tr '\r' '\n' | awk '{print $3}')
+						asn=$(cat meta.txt | grep asn: | awk -F: '{print $2}')
+						city=$(cat meta.txt | grep city: | awk -F: '{print $2}')
+						latitude=$(cat meta.txt | grep latitude: | awk -F: '{print $2}')
+						longitude=$(cat meta.txt | grep longitude: | awk -F: '{print $2}')
 						curl --ipv4 --retry 3 "https://service.udpfile.com?asn="$asn"&city="$city"" -o data.txt -#
 						break
 					fi
@@ -63,7 +61,7 @@ do
 		file=$(cat data.txt | grep file= | cut -f 2- -d'=')
 		url=$(cat data.txt | grep url= | cut -f 2- -d'=')
 		app=$(cat data.txt | grep app= | cut -f 2- -d'=')
-		if [ "$app" != "20210315" ]
+		if [ "$app" != "20210903" ]
 		then
 			echo 发现新版本程序: $app
 			echo 更新地址: $url
@@ -152,7 +150,6 @@ do
 			max=0
 			for i in `cat speed.txt`
 			do
-				max=$i
 				if [ $i -ge $max ]; then
 					max=$i
 				fi
@@ -188,7 +185,6 @@ do
 			max=0
 			for i in `cat speed.txt`
 			do
-				max=$i
 				if [ $i -ge $max ]; then
 					max=$i
 				fi
@@ -203,9 +199,9 @@ do
 			echo 峰值速度 $max kB/s
 			if [ $max1 -ge $max2 ]
 			then
-				curl --ipv4 --resolve service.udpfile.com:443:$first --retry 3 -s -X POST -d ''20210315-$first-$max1'' "https://service.udpfile.com?asn="$asn"&city="$city"" -o /dev/null --connect-timeout 5 --max-time 10
+				curl --ipv4 --resolve service.udpfile.com:443:$first --retry 3 -s -X POST -d ''20210903-$first-$max1'' "https://service.udpfile.com?asn="$asn"&city="$city"" -o /dev/null --connect-timeout 5 --max-time 10
 			else
-				curl --ipv4 --resolve service.udpfile.com:443:$first --retry 3 -s -X POST -d ''20210315-$first-$max2'' "https://service.udpfile.com?asn="$asn"&city="$city"" -o /dev/null --connect-timeout 5 --max-time 10
+				curl --ipv4 --resolve service.udpfile.com:443:$first --retry 3 -s -X POST -d ''20210903-$first-$max2'' "https://service.udpfile.com?asn="$asn"&city="$city"" -o /dev/null --connect-timeout 5 --max-time 10
 			fi
 			echo 第一次测试 $second
 			curl --resolve $domain:443:$second https://$domain/$file -o /dev/null --connect-timeout 5 --max-time 10 > log.txt 2>&1
@@ -230,7 +226,6 @@ do
 			max=0
 			for i in `cat speed.txt`
 			do
-				max=$i
 				if [ $i -ge $max ]; then
 					max=$i
 				fi
@@ -266,7 +261,6 @@ do
 			max=0
 			for i in `cat speed.txt`
 			do
-				max=$i
 				if [ $i -ge $max ]; then
 					max=$i
 				fi
@@ -281,9 +275,9 @@ do
 			echo 峰值速度 $max kB/s
 			if [ $max1 -ge $max2 ]
 			then
-				curl --ipv4 --resolve service.udpfile.com:443:$second --retry 3 -s -X POST -d ''20210315-$second-$max1'' "https://service.udpfile.com?asn="$asn"&city="$city"" -o /dev/null --connect-timeout 5 --max-time 10
+				curl --ipv4 --resolve service.udpfile.com:443:$second --retry 3 -s -X POST -d ''20210903-$second-$max1'' "https://service.udpfile.com?asn="$asn"&city="$city"" -o /dev/null --connect-timeout 5 --max-time 10
 			else
-				curl --ipv4 --resolve service.udpfile.com:443:$second --retry 3 -s -X POST -d ''20210315-$second-$max2'' "https://service.udpfile.com?asn="$asn"&city="$city"" -o /dev/null --connect-timeout 5 --max-time 10
+				curl --ipv4 --resolve service.udpfile.com:443:$second --retry 3 -s -X POST -d ''20210903-$second-$max2'' "https://service.udpfile.com?asn="$asn"&city="$city"" -o /dev/null --connect-timeout 5 --max-time 10
 			fi
 			echo 第一次测试 $third
 			curl --resolve $domain:443:$third https://$domain/$file -o /dev/null --connect-timeout 5 --max-time 10 > log.txt 2>&1
@@ -308,7 +302,6 @@ do
 			max=0
 			for i in `cat speed.txt`
 			do
-				max=$i
 				if [ $i -ge $max ]; then
 					max=$i
 				fi
@@ -344,7 +337,6 @@ do
 			max=0
 			for i in `cat speed.txt`
 			do
-				max=$i
 				if [ $i -ge $max ]; then
 					max=$i
 				fi
@@ -359,9 +351,9 @@ do
 			echo 峰值速度 $max kB/s
 			if [ $max1 -ge $max2 ]
 			then
-				curl --ipv4 --resolve service.udpfile.com:443:$third --retry 3 -s -X POST -d ''20210315-$third-$max1'' "https://service.udpfile.com?asn="$asn"&city="$city"" -o /dev/null --connect-timeout 5 --max-time 10
+				curl --ipv4 --resolve service.udpfile.com:443:$third --retry 3 -s -X POST -d ''20210903-$third-$max1'' "https://service.udpfile.com?asn="$asn"&city="$city"" -o /dev/null --connect-timeout 5 --max-time 10
 			else
-				curl --ipv4 --resolve service.udpfile.com:443:$third --retry 3 -s -X POST -d ''20210315-$third-$max2'' "https://service.udpfile.com?asn="$asn"&city="$city"" -o /dev/null --connect-timeout 5 --max-time 10
+				curl --ipv4 --resolve service.udpfile.com:443:$third --retry 3 -s -X POST -d ''20210903-$third-$max2'' "https://service.udpfile.com?asn="$asn"&city="$city"" -o /dev/null --connect-timeout 5 --max-time 10
 			fi
 		fi
 	done
@@ -374,7 +366,7 @@ done
 	start_seconds=$(date --date="$starttime" +%s)
 	end_seconds=$(date --date="$endtime" +%s)
 	clear
-	curl --ipv4 --resolve service.udpfile.com:443:$anycast --retry 3 -s -X POST -d ''20210315-$anycast-$max'' "https://service.udpfile.com?asn="$asn"&city="$city"" -o temp.txt
+	curl --ipv4 --resolve service.udpfile.com:443:$anycast --retry 3 -s -X POST -d ''20210903-$anycast-$max'' "https://service.udpfile.com?asn="$asn"&city="$city"" -o temp.txt
 	publicip=$(cat temp.txt | grep publicip= | cut -f 2- -d'=')
 	colo=$(cat temp.txt | grep colo= | cut -f 2- -d'=')
 	rm -rf temp.txt
@@ -388,6 +380,8 @@ done
 	echo 峰值速度 $max kB/s
 	echo 数据中心 $colo
 	echo 总计用时 $((end_seconds-start_seconds)) 秒
+
+
 	
 	iptables -t nat -D OUTPUT $(iptables -t nat -nL OUTPUT --line-number | grep $localport | awk '{print $1}')
 	iptables -t nat -A OUTPUT -p tcp --dport $localport -j DNAT --to-destination $anycast:$remoteport
